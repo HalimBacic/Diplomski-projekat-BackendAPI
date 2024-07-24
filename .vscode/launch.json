@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-MultidbapiApplication<multidbapi>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "backend.multidbapi.multidbapi.MultidbapiApplication",
+            "projectName": "multidbapi",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
