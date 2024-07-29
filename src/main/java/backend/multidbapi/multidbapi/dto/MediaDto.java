@@ -1,5 +1,6 @@
 package backend.multidbapi.multidbapi.dto;
 
+import java.io.InputStream;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -21,6 +22,17 @@ import lombok.Setter;
 @Getter
 @Setter
 public class MediaDto {
+    
+    public MediaDto(MediaTypeEnum type, String name, long size, Date dateCreated, Date dateModified, String group, UserDto userAccess) {
+        this.Type = type;
+        this.Name = name;
+        this.Size = size;
+        this.DateCreated = dateCreated;
+        this.DateModified = dateModified;
+        this.Group = group;
+        this.UsersAccess.add(userAccess);
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long Id;
