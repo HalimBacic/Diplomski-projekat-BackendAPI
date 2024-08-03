@@ -18,9 +18,10 @@ public class MinioConfig {
 
     @Bean
     public MinioClient minioClient() {
-        return MinioClient.builder()
+        MinioClient minioClient =  MinioClient.builder()
                 .endpoint(url)
                 .credentials(accessKey, accessSecret)
                 .build();
+        return minioClient;
     }
 }

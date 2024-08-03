@@ -6,7 +6,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import backend.multidbapi.multidbapi.dto.UserDto;
+
+import backend.multidbapi.multidbapi.dbmodels.User;
 import backend.multidbapi.multidbapi.interfaces.UserInterface;
 import backend.multidbapi.multidbapi.models.RegisterRequest;
 import backend.multidbapi.multidbapi.models.exceptions.Messages;
@@ -26,9 +27,9 @@ public class UserService implements UserInterface, UserDetailsService {
     }
 
     @Override
-    public UserDto RegisterUser(RegisterRequest request) throws ServerException {
+    public User RegisterUser(RegisterRequest request) throws ServerException {
         String passHash = passwordEncoder.encode(request.Password);
-        UserDto user = new UserDto(request.Username, passHash, request.Email, request.Authorities);
+        User user = new User(request.Username, passHash, request.Email, request.Authorities);
         try {
             userRepository.save(user);
         } catch (Exception ex) {

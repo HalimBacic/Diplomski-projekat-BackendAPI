@@ -10,7 +10,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import backend.multidbapi.multidbapi.dto.UserDto;
+
+import backend.multidbapi.multidbapi.dbmodels.User;
 import backend.multidbapi.multidbapi.models.LoginRequest;
 import backend.multidbapi.multidbapi.models.RegisterRequest;
 import backend.multidbapi.multidbapi.models.exceptions.ServerException;
@@ -35,9 +36,9 @@ public class UserController {
 
     @SuppressWarnings("null")
     @PostMapping("register")
-    public ResponseEntity<UserDto> RegisterUser(@RequestBody RegisterRequest request) {
+    public ResponseEntity<User> RegisterUser(@RequestBody RegisterRequest request) {
         try {
-            UserDto user = service.RegisterUser(request);
+            User user = service.RegisterUser(request);
             return new ResponseEntity<>(user, HttpStatus.OK);
         } catch (ServerException ex) {
             return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);

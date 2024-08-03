@@ -25,7 +25,7 @@ public class MinioStorageService implements MinioStorageInterface{
                 minioClient.putObject(
                     PutObjectArgs.builder().bucket(bucketName).object(objectName).stream(
                             inputStream, inputStream.available(), -1)
-                            .contentType(contentType)
+                            .contentType("image/jpeg")
                             .build());
             } catch (Exception e) {
                 throw new RuntimeException("Error occurred: " + e.getMessage());
@@ -33,8 +33,8 @@ public class MinioStorageService implements MinioStorageInterface{
         }
 
         @Override
-        public InputStream downloadFile(String objectName, Long userId) throws Exception {
-            String bucketName = "user-" + userId;
+        public InputStream downloadFile(String objectName, String userName) throws Exception {
+            String bucketName = "user-" + userName;
             return minioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(bucketName)

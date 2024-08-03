@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = "backend.multidbapi.multidbapi")
 @EnableJpaRepositories(basePackages = "backend.multidbapi.multidbapi.repository")
-@EntityScan(basePackages = "backend.multidbapi.multidbapi.dto")
+@EntityScan(basePackages = "backend.multidbapi.multidbapi.dbmodels")
 public class MultidbapiApplication {
 
 	public static void main(String[] args) {

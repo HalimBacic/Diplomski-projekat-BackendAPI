@@ -2,6 +2,8 @@ package backend.multidbapi.multidbapi.security;
 
 import java.security.Key;
 import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -12,7 +14,6 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,7 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class JwtTokenProvider {
-    Key key = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+  
+  @Value("${jwt.secret-key}")
+  private String secretKey;
 
   public String createToken(Authentication authentication) {
   
@@ -32,7 +35,7 @@ public class JwtTokenProvider {
         .setSubject(userDetails.getUsername())
         .setIssuedAt(new Date())
         .setExpiration(expiryDate)
-        .signWith(key, SignatureAlgorithm.HS256)
+        .signWith(SignatureAlgorithm.HS256, secretKey.getBytes())
         .compact();
   }
 
@@ -51,7 +54,7 @@ public class JwtTokenProvider {
       try {
 
             Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(secretKey.getBytes())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -73,7 +76,7 @@ public class JwtTokenProvider {
     public String getUsername(String token) {
     
         return Jwts.parserBuilder()
-            .setSigningKey(key)
+            .setSigningKey(secretKey.getBytes())
             .build()
             .parseClaimsJws(token)
             .getBody()

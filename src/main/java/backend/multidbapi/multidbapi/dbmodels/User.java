@@ -1,8 +1,11 @@
-package backend.multidbapi.multidbapi.dto;
+package backend.multidbapi.multidbapi.dbmodels;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,16 +23,14 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class UserDto {
+public class User {
    @Id
-   @GeneratedValue(strategy = GenerationType.IDENTITY)
-   private Long id; 
    private String username;
    private String password;
    private String email;
    private List<String> authorities;
 
-   public UserDto(String username, String password, String email, List<String> authorities) {
+   public User(String username, String password, String email, List<String> authorities) {
       super();
       this.username = username;
       this.password = password;
@@ -37,7 +38,8 @@ public class UserDto {
       this.authorities = authorities;
    }
 
+   @JsonBackReference
    @ManyToMany
    @JoinTable(name = "usermedia", joinColumns = @JoinColumn(name="userId"), inverseJoinColumns = @JoinColumn(name = "mediaId"))
-   Set<MediaDto> UserMedia = new HashSet<>();
+   Set<Media> UserMedia = new HashSet<>();
 }
