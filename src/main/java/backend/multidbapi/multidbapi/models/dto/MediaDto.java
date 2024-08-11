@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class MediaDto {
-    private Long Id;
+    private String Id;
     private MediaTypeEnum Type;
     private String Name;
     private long Size;

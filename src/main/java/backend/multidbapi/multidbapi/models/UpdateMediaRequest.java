@@ -5,8 +5,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class MediaDownloadRequest {
-    private String mediaId;
+public class UpdateMediaRequest {
     private String name;
-    private String username;
+    private String group = "";
+    private Boolean downloadable = true;
 }

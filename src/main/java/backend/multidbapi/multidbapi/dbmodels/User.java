@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,8 +39,6 @@ public class User {
       this.authorities = authorities;
    }
 
-   @JsonBackReference
-   @ManyToMany
-   @JoinTable(name = "usermedia", joinColumns = @JoinColumn(name="userId"), inverseJoinColumns = @JoinColumn(name = "mediaId"))
-   Set<Media> UserMedia = new HashSet<>();
+    @OneToMany(mappedBy = "user")
+    Set<UserMedia> mediaOnUser;
 }
