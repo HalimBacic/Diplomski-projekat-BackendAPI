@@ -1,8 +1,6 @@
 package backend.multidbapi.multidbapi.security;
 
-import java.security.Key;
 import java.util.Date;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
