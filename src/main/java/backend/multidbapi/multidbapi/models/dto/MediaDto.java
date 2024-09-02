@@ -11,6 +11,7 @@ import lombok.Setter;
 public class MediaDto {
     private String Id;
     private MediaTypeEnum Type;
+    private MediaTypeEnum CheckType;
     private String Name;
     private long Size;
     private Date DateCreated;
@@ -18,4 +19,6 @@ public class MediaDto {
     @Nullable
     private String Group = "";
     private Boolean Downloadable = true;
+    private String url = "";
+    private String thumbUrl = "";
 }

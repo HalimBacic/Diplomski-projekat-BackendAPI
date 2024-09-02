@@ -2,19 +2,17 @@ package backend.multidbapi.multidbapi.controllers;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
-
+import java.util.ArrayList;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import backend.multidbapi.multidbapi.dbmodels.Media;
-import backend.multidbapi.multidbapi.models.DeleteMediaRequest;
 import backend.multidbapi.multidbapi.models.MediaAccessRequest;
 import backend.multidbapi.multidbapi.models.MediaDownloadRequest;
 import backend.multidbapi.multidbapi.models.MediaRequest;
@@ -26,17 +24,15 @@ import backend.multidbapi.multidbapi.models.exceptions.Messages;
 import backend.multidbapi.multidbapi.models.exceptions.MultiDbException;
 import backend.multidbapi.multidbapi.services.MediaService;
 import backend.multidbapi.multidbapi.services.minioconfig.MinioStorageService;
+import io.jsonwebtoken.Jwts;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-
-
 
 @Controller
 public class MediaController {
@@ -50,23 +46,28 @@ public class MediaController {
     @Autowired
     private ModelMapper modelMapper;
 
+    @Value("${jwt.secret-key}")
+    private String secretKey;
+
     public MediaController(MediaService mediaservice) {
         this.mediaService = mediaservice;
     }
 
     @PostMapping(value = "upload", consumes = "multipart/form-data")
-    public ResponseEntity<MediaResponse> UploadFile(@RequestParam("username") String username,
-            @RequestParam("name") String name,
+    public ResponseEntity<MediaResponse> UploadFile(@RequestHeader("Authorization") String authorizationHeader,
             @RequestParam("type") String type,
             @RequestParam("file") MultipartFile file) throws MultiDbException {
+        String username = mediaService.GetUserNameByToken(authorizationHeader);
         MediaRequest request = new MediaRequest();
         request.setFile(file);
-        request.setName(name);
+        request.setName(file.getOriginalFilename());
         request.setType(Enum.valueOf(MediaTypeEnum.class, type));
         request.setUsername(username);
         MediaResponse response = new MediaResponse();
         try {
             minioService.uploadFile("user-" + request.getUsername(), request.getName(),
+                    request.getFile().getInputStream(), request.getType().toString());
+            minioService.uploadThumbail("user-" + request.getUsername(), request.getName(),
                     request.getFile().getInputStream(), request.getType().toString());
             Media media = mediaService.UploadFile(request);
             MediaDto mediaDto = modelMapper.map(media, MediaDto.class);
@@ -80,13 +81,15 @@ public class MediaController {
     }
 
     @PostMapping("preview")
-    public ResponseEntity<MediaResponse> PreviewFile(@RequestBody MediaDownloadRequest request)
+    public ResponseEntity<MediaResponse> PreviewFile(@RequestHeader("Authorization") String authorizationHeader,
+            @RequestBody MediaDownloadRequest request)
             throws MultiDbException {
-        try {
+        try {String username = mediaService.GetUserNameByToken(authorizationHeader);
             Media media = mediaService.PreviewFile(request.getMediaId());
             MediaDto mediaDto = modelMapper.map(media, MediaDto.class);
-            InputStream multimedia = minioService.downloadFile(request.getName(), request.getUsername());
-            MediaResponse response = new MediaResponse(mediaDto,multimedia);
+            String url = minioService.getPresignedUrl("user-" + username, mediaDto.getName());
+            String thumbUrl = minioService.getPresignedUrl("user-" + username, "thumbnails/" + mediaDto.getName());
+            MediaResponse response = new MediaResponse(mediaDto, url, thumbUrl);
             HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + request.getName());
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
@@ -98,37 +101,65 @@ public class MediaController {
         }
     }
 
+    @GetMapping("getall")
+    public ResponseEntity<List<MediaResponse>> GetAllMedia(@RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            String username = mediaService.GetUserNameByToken(authorizationHeader);
+            List<MediaDto> allusermedia = mediaService.GetAllFiles(username);
+            List<MediaResponse> response = new ArrayList<>();
+            String thumbUrl = "";
+            for (MediaDto userMediaDto : allusermedia) {
+                String url = minioService.getPresignedUrl("user-" + username, userMediaDto.getName());
+                if(MediaTypeEnum.CheckMimeType(userMediaDto.getType())==MediaTypeEnum.AUDIO)
+                    thumbUrl = minioService.getPresignedUrl("global","audio.png");
+                else if(MediaTypeEnum.CheckMimeType(userMediaDto.getType())==MediaTypeEnum.VIDEO)  
+                    thumbUrl = minioService.getPresignedUrl("global","video.png"); 
+                else
+                    thumbUrl = minioService.getPresignedUrl("user-" + username, "thumbnails/"+userMediaDto.getName());    
+                MediaResponse responseItem = new MediaResponse(userMediaDto, url, thumbUrl);
+                response.add(responseItem);
+            }
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     // @GetMapping("searh")
-    // public ResponseEntity<ArrayList<MediaResponse>> searchMedia(@PathVariable String term, @PathVariable String username) {
-    //     try {
-    //         ArrayList<Media> mediaList = new ArrayList<>(mediaService.SearchFiles(term));
-    //         ArrayList<MediaResponse> responses = new ArrayList<>();
-    //         for (Media media : mediaList) {
-    //             MediaDto mediaDto = modelMapper.map(media, MediaDto.class);
-    //             InputStream multimedia = minioService.downloadFile(mediaDto.getName(), username);
-    //             MediaResponse response = new MediaResponse(mediaDto,multimedia);
-    //             responses.add(response);
-    //         }
-    //         return new ResponseEntity<>(responses, HttpStatus.OK);
-    //     } catch (Exception e) {
-    //         // TODO Auto-generated catch block
-    //         e.printStackTrace();
-    //         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-    //     }
+    // public ResponseEntity<ArrayList<MediaResponse>> searchMedia(@PathVariable
+    // String term, @PathVariable String username) {
+    // try {
+    // ArrayList<Media> mediaList = new ArrayList<>(mediaService.SearchFiles(term));
+    // ArrayList<MediaResponse> responses = new ArrayList<>();
+    // for (Media media : mediaList) {
+    // MediaDto mediaDto = modelMapper.map(media, MediaDto.class);
+    // InputStream multimedia = minioService.downloadFile(mediaDto.getName(),
+    // username);
+    // MediaResponse response = new MediaResponse(mediaDto,multimedia);
+    // responses.add(response);
     // }
-    
+    // return new ResponseEntity<>(responses, HttpStatus.OK);
+    // } catch (Exception e) {
+    // // TODO Auto-generated catch block
+    // e.printStackTrace();
+    // return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    // }
+    // }
 
     @GetMapping("download")
-    public ResponseEntity<Boolean> DownloadFile(@RequestParam String mediaId, @RequestParam String username) {
+    public ResponseEntity<String> DownloadFile(@RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam String mediaId) {
         try {
-            String fileName = mediaService.DownloadFile(mediaId);
-            InputStream multimedia = minioService.downloadFile(fileName, username);
-            mediaService.saveFile(multimedia, fileName);
-
-            return ResponseEntity.ok(true);
+            String username = mediaService.GetUserNameByToken(authorizationHeader);
+            String fileName = mediaService.DownloadFile(mediaId, username);
+            String url = minioService.getPresignedUrl("user-"+username, fileName);
+            return ResponseEntity.ok(url);
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -136,13 +167,13 @@ public class MediaController {
     public ResponseEntity<Boolean> GiveFileAccess(@RequestBody MediaAccessRequest request) {
         Boolean status = false;
         try {
-            status = mediaService.GiveFileAccess(request.getUsers(), 
-                request.getUsername(), request.getMediaId(), request.getGrant());
+            status = mediaService.GiveFileAccess(request.getUsers(),
+                    request.getUsername(), request.getMediaId(), request.getGrant());
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(status,HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(status, HttpStatus.NOT_FOUND);
         }
-        
+
         return ResponseEntity.ok(status);
     }
 
@@ -150,16 +181,16 @@ public class MediaController {
     public ResponseEntity<Boolean> RestrictFileAccess(@RequestBody MediaAccessRequest request) {
         Boolean status = false;
         try {
-            status = mediaService.GiveFileAccess(request.getUsers(), 
-                request.getUsername(), request.getMediaId(), request.getGrant());
+            status = mediaService.GiveFileAccess(request.getUsers(),
+                    request.getUsername(), request.getMediaId(), request.getGrant());
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity<>(status,HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(status, HttpStatus.NOT_FOUND);
         }
-        
+
         return ResponseEntity.ok(status);
     }
-    
+
     @PutMapping("update")
     public ResponseEntity<MediaDto> UpdateMedia(@RequestParam String mediaId, @RequestBody UpdateMediaRequest request) {
         try {
@@ -174,12 +205,12 @@ public class MediaController {
     }
 
     @DeleteMapping(path = "delete")
-    public ResponseEntity<HttpStatus> DeleteFile(@RequestBody DeleteMediaRequest request)
-    {        
-        String mediaName = mediaService.DeleteFile(request.getMediaId());
-        if(mediaName != null)
-        {
-            minioService.deleteFile("user-"+request.getUsername(), mediaName);
+    public ResponseEntity<HttpStatus> DeleteFile(@RequestHeader("Authorization") String authHeader, @RequestParam String mediaId) {
+        String username = mediaService.GetUserNameByToken(authHeader);
+        String mediaName = mediaService.DeleteFile(mediaId);
+        if (mediaName != null) {
+            minioService.deleteFile("user-" + username, mediaName);
+            minioService.deleteFile("user-" + username, "thumbails/"+mediaName);
             return new ResponseEntity<>(HttpStatus.ACCEPTED);
         }
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

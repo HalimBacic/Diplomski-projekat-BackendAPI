@@ -2,8 +2,6 @@ package backend.multidbapi.multidbapi.models;
 
 import java.util.List;
 
-import backend.multidbapi.multidbapi.dbmodels.Media;
-import backend.multidbapi.multidbapi.dbmodels.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

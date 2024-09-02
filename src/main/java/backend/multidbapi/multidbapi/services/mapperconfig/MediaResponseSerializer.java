@@ -14,7 +14,6 @@ public class MediaResponseSerializer extends JsonSerializer<MediaResponse> {
     {
         gen.writeStartObject();
         gen.writeObjectField("metadata", multiPartResource.getMetadata());
-        gen.writeBinaryField("resource", multiPartResource.getResource().getByteArray());
         gen.writeEndObject();
     }
     

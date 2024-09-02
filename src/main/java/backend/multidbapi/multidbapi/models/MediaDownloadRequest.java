@@ -8,5 +8,4 @@ import lombok.Setter;
 public class MediaDownloadRequest {
     private String mediaId;
     private String name;
-    private String username;
 }

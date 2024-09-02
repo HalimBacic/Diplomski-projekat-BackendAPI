@@ -5,11 +5,15 @@ import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 import backend.multidbapi.multidbapi.dbmodels.Media;
 import backend.multidbapi.multidbapi.dbmodels.User;
@@ -18,10 +22,14 @@ import backend.multidbapi.multidbapi.dbmodels.UserMediaKey;
 import backend.multidbapi.multidbapi.interfaces.MediaInterface;
 import backend.multidbapi.multidbapi.models.GrantEnum;
 import backend.multidbapi.multidbapi.models.MediaRequest;
+import backend.multidbapi.multidbapi.models.MediaTypeEnum;
 import backend.multidbapi.multidbapi.models.UpdateMediaRequest;
+import backend.multidbapi.multidbapi.models.dto.MediaDto;
 import backend.multidbapi.multidbapi.repository.MediaRepository;
 import backend.multidbapi.multidbapi.repository.UserMediaRepository;
 import backend.multidbapi.multidbapi.repository.UserRepository;
+import io.jsonwebtoken.Jwts;
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class MediaService implements MediaInterface {
@@ -34,6 +42,12 @@ public class MediaService implements MediaInterface {
 
     @Autowired
     public UserMediaRepository userMediaRepository;
+
+    @Autowired
+    private ModelMapper modelMapper;
+
+    @Value("${jwt.secret-key}")
+    private String secretKey;
 
     @Override
     public Media UploadFile(MediaRequest mediaRequest) throws Exception {
@@ -98,9 +112,14 @@ public class MediaService implements MediaInterface {
     }
 
     @Override
-    public String DownloadFile(String mediaId) throws Exception {
+    public String DownloadFile(String mediaId, String userId) throws Exception {
         Media media = mediaRepository.getReferenceById(mediaId);
-        return media.getName();
+        UserMediaKey userMediaKey = new UserMediaKey(mediaId, userId);
+        UserMedia userMedia = userMediaRepository.findById(userMediaKey).orElseThrow(() -> new EntityNotFoundException("User has no access to media"));;
+        if(userMedia.getGrants() != GrantEnum.NONE)
+            return media.getName();
+        else
+            throw new Exception("User can't download file.");
     }
 
     public void saveFile(InputStream inputStream, String filePath) throws IOException {
@@ -138,5 +157,32 @@ public class MediaService implements MediaInterface {
             userMediaRepository.deleteById_UserIdAndId_MediaId(userId, mediaId);
         }
         return true;
+    }
+
+    @Override
+    public List<MediaDto> GetAllFiles(String username) throws Exception {
+        UserMedia userMedia = new UserMedia();
+        userMedia.setUser(new User(username));
+        List<UserMedia> usermedia = userMediaRepository.findAll(Example.of(userMedia));
+        List<MediaDto> mediaList = new ArrayList<>();
+        for (UserMedia media : usermedia) {
+            MediaDto mediaDto = modelMapper.map(media.getMedia(), MediaDto.class);
+            mediaDto.setCheckType(MediaTypeEnum.CheckMimeType(mediaDto.getType()));
+            mediaList.add(mediaDto);
+        }
+
+        return mediaList;
+    }
+
+    public String GetUserNameByToken(String authorizationHeader)
+    {
+            String token = authorizationHeader.substring(7);
+            String username = Jwts.parserBuilder()
+                    .setSigningKey(secretKey.getBytes())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
+            return username;
     }
 }

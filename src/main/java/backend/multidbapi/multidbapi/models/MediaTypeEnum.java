@@ -8,7 +8,12 @@ public enum MediaTypeEnum {
     VIDEOMP4("video/mp4"),
     VIDEOMPEG("video/mpeg"),
     AUDIOMPEG("audio/mpeg"),
-    AUDIOWAV("audio/wav");
+    AUDIOWAV("audio/wav"),
+    AUDIOMP3("audio/mp3"),
+    NONE("None"),
+    IMAGE("image"),
+    AUDIO("audio"),
+    VIDEO("video");
 
     private final String mimeType;
 
@@ -34,8 +39,30 @@ public enum MediaTypeEnum {
                 return ".mp4";
             case VIDEOMPEG:
                 return ".mpeg";
+            case AUDIOMP3:
+                return ".mp3";
             default:
                 throw new IllegalArgumentException("Unknown media type: " + type);
+        }
+    }
+
+    public static MediaTypeEnum CheckMimeType(MediaTypeEnum checkMimeType)
+    {
+        switch(checkMimeType)
+        {
+            case IMAGEJPEG:
+            case IMAGEGIF:
+            case IMAGEPNG:
+            case IMAGESVGXML:
+                return MediaTypeEnum.IMAGE;
+            case VIDEOMP4:
+            case VIDEOMPEG:
+                return MediaTypeEnum.VIDEO;
+            case AUDIOMP3:
+            case AUDIOMPEG:
+                return MediaTypeEnum.AUDIO;
+            default:
+                return MediaTypeEnum.NONE;
         }
     }
 }
